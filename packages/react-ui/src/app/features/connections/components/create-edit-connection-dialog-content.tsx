@@ -240,6 +240,13 @@ const CreateEditConnectionDialogContent = ({
             )}
 
             <DialogFooter className="mt-[60px]">
+              {/* <Button
+                onClick={(e) => form.handleSubmit(() => mutate())(e)}
+                size="lg"
+                variant="basic"
+              >
+                {t('Back')}
+              </Button> */}
               <Button
                 onClick={(e) => form.handleSubmit(() => mutate())(e)}
                 loading={isPending}
