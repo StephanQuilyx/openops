@@ -16,7 +16,7 @@ export const getBudgets = createAction({
         method: HttpMethod.GET,
         url: 'budgets',
         queryParams: {
-          tenantId: auth.tenantId,
+          tenantID: auth.tenantId,
         },
       });
       return response.body as any[];
