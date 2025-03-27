@@ -1,10 +1,10 @@
 import { createBlock } from '@openops/blocks-framework';
 // import { ternaryAuth } from '@openops/common';
-import { ternaryAuth, ternaryCloudAuth } from './auth';
+import { ternaryCloudAuth } from './auth';
 
 export const ternary = createBlock({
   displayName: 'Ternary',
-  description: 'FinOps multi-cloud platform analytics.',
+  description: 'FinOps multi-cloud analytics platform.',
   auth: ternaryCloudAuth,
   minimumSupportedRelease: '0.20.0',
   logoUrl:

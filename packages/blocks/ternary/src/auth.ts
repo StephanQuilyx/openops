@@ -1,45 +1,35 @@
 import { HttpError, HttpMethod } from '@openops/blocks-common';
-import {
-  BlockAuth,
-  Property,
-  ShortTextProperty,
-  StaticPropsValue,
-  Validators,
-} from '@openops/blocks-framework';
-import { getUsers, sendJiraRequest } from './lib/common';
+import { BlockAuth, Property, Validators } from '@openops/blocks-framework';
+import { sendTernaryRequest } from './lib/common';
 
-export const jiraCloudAuth = BlockAuth.CustomAuth({
+export const ternaryCloudAuth = BlockAuth.CustomAuth({
   description: `
-You can generate your API token from:
-***https://id.atlassian.com/manage-profile/security/api-tokens***
+Ternary API documentation:
+https://docs.ternary.app/reference/using-the-api
     `,
   required: true,
   props: {
-    instanceUrl: Property.ShortText({
-      displayName: 'Instance URL',
-      description:
-        'The link of your Jira instance (e.g https://example.atlassian.net)',
+    apiKey: BlockAuth.SecretText({
+      displayName: 'API key',
+      required: true,
+    }),
+    tenantId: Property.ShortText({
+      displayName: 'Tenant ID',
+      required: true,
+    }),
+    apiURL: Property.ShortText({
+      displayName: 'API URL',
+      description: 'For example: https://core-api.eu.ternary.app',
       required: true,
       validators: [Validators.url],
-    }),
-    email: Property.ShortText({
-      displayName: 'Email',
-      description: 'The email you use to login to Jira',
-      required: true,
-      validators: [Validators.email],
-    }),
-    apiToken: BlockAuth.SecretText({
-      displayName: 'API Token',
-      description: 'Your Jira API Token',
-      required: true,
     }),
   },
   validate: async ({ auth }) => {
     try {
-      await sendJiraRequest({
+      const response = await sendTernaryRequest({
         auth: auth,
         method: HttpMethod.GET,
-        url: 'myself',
+        url: 'me',
       });
       return {
         valid: true,
@@ -53,8 +43,8 @@ You can generate your API token from:
   },
 });
 
-export type JiraAuth = {
-  instanceUrl: string;
-  email: string;
-  apiToken: string;
+export type ternaryAuth = {
+  apiKey: string;
+  tenantId: string;
+  apiURL: string;
 };
