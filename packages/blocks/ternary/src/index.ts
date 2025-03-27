@@ -1,6 +1,7 @@
 import { createBlock } from '@openops/blocks-framework';
 // import { ternaryAuth } from '@openops/common';
 import { ternaryCloudAuth } from './auth';
+import { getBudgets } from './lib/actions/get-budgets';
 
 export const ternary = createBlock({
   displayName: 'Ternary',
@@ -11,6 +12,6 @@ export const ternary = createBlock({
     'https://firebasestorage.googleapis.com/v0/b/quilops-712fd.firebasestorage.app/o/public%2Fternary-logo.png?alt=media&token=20820a50-f4ae-4385-942b-bb58cb7cb5cf',
   categories: [],
   authors: ['Quilyx'],
-  actions: [],
+  actions: [getBudgets],
   triggers: [],
 });
