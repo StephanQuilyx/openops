@@ -1,4 +1,9 @@
-import { Action, flowHelper, FlowVersion } from '@openops/shared';
+import {
+  Action,
+  flowHelper,
+  FlowVersion,
+  StepLocationRelativeToParent,
+} from '@openops/shared';
 import {
   OnSelectionChangeParams,
   useKeyPress,
@@ -17,6 +22,7 @@ import {
 } from 'react';
 import { usePrevious } from 'react-use';
 import { useDebounceCallback } from 'usehooks-ts';
+import { useClipboardContext } from './clipboard-context';
 import {
   COPY_DEBOUNCE_DELAY_MS,
   COPY_KEYS,
@@ -27,6 +33,11 @@ import {
 import { copyPasteToast } from './copy-paste-toast';
 
 export type PanningMode = 'grab' | 'pan';
+export type PlusButtonPostion = {
+  parentStep: string;
+  plusStepLocation: StepLocationRelativeToParent;
+  branchNodeId?: string;
+};
 
 type CanvasContextState = {
   panningMode: PanningMode;
@@ -36,6 +47,10 @@ type CanvasContextState = {
   copySelectedArea: () => void;
   copyAction: (action: Action) => void;
   readonly: boolean;
+  pastePlusButton: PlusButtonPostion | null;
+  setPastePlusButton: React.Dispatch<
+    React.SetStateAction<PlusButtonPostion | null>
+  >;
 };
 
 const CanvasContext = createContext<CanvasContextState | undefined>(undefined);
@@ -54,6 +69,8 @@ export const ReadonlyCanvasProvider = ({
       copySelectedArea: () => {},
       copyAction: () => {},
       readonly: true,
+      pastePlusButton: null,
+      setPastePlusButton: () => {},
     }),
     [],
   );
@@ -81,6 +98,8 @@ export const InteractiveContextProvider = ({
   const [panningMode, setPanningMode] = useState<PanningMode>('grab');
   const previousSelectedStep = usePrevious(selectedStep);
   const [selectedActions, setSelectedActions] = useState<Action[]>([]);
+  const [pastePlusButton, setPastePlusButton] =
+    useState<PlusButtonPostion | null>(null);
   const selectedFlowActionRef = useRef<Action | null>(null);
   const selectedNodeCounterRef = useRef<number>(0);
   const state = useStoreApi().getState();
@@ -94,6 +113,7 @@ export const InteractiveContextProvider = ({
       : null;
   }, [flowCanvasContainerId]);
   const copyPressed = useKeyPress(COPY_KEYS, { target: canvas });
+  const { fetchClipboardOperations } = useClipboardContext();
 
   // clear multi-selection if we have a new selected step
   useEffect(() => {
@@ -147,15 +167,19 @@ export const InteractiveContextProvider = ({
 
     if (!selectedSteps.length) return;
 
-    selectedFlowActionRef.current = flowHelper.truncateFlow(
+    const selectedFlowAction = flowHelper.truncateFlow(
       cloneDeep(selectedSteps[0]),
       selectedSteps[selectedSteps.length - 1].name,
     ) as Action;
 
-    const selectedStepNames = flowHelper
-      .getAllSteps(selectedFlowActionRef.current)
-      .map((step) => step.name);
+    const selectedStepNames: string[] = [];
 
+    flowHelper.getAllSteps(selectedFlowAction).forEach((step) => {
+      flowHelper.clearStepTestData(step);
+      selectedStepNames.push(step.name);
+    });
+
+    selectedFlowActionRef.current = selectedFlowAction;
     selectedNodeCounterRef.current = selectedStepNames.length;
 
     state.setNodes(
@@ -182,6 +206,7 @@ export const InteractiveContextProvider = ({
 
     const stepToBeCopied = cloneDeep(stepDetails);
     stepToBeCopied.nextAction = undefined;
+    flowHelper.clearStepTestData(stepToBeCopied);
 
     handleCopy(stepToBeCopied as Action, 1);
   }, COPY_DEBOUNCE_DELAY_MS);
@@ -205,11 +230,14 @@ export const InteractiveContextProvider = ({
   const copyAction = (action: Action) => {
     const actionToBeCopied = cloneDeep(action);
     actionToBeCopied.nextAction = undefined;
-    const actionCounter = flowHelper.getAllSteps(actionToBeCopied).length;
-    handleCopy(actionToBeCopied, actionCounter);
+    const allNestedSteps = flowHelper.getAllSteps(actionToBeCopied);
+    allNestedSteps.forEach((step) => {
+      flowHelper.clearStepTestData(step);
+    });
+    handleCopy(actionToBeCopied, allNestedSteps.length);
   };
 
-  const handleCopy = (action: Action, actionCounter: number) => {
+  const handleCopy = (action: Action, actionCount: number) => {
     const flowString = JSON.stringify(action);
 
     navigator.clipboard
@@ -218,14 +246,15 @@ export const InteractiveContextProvider = ({
         copyPasteToast({
           success: true,
           isCopy: true,
-          itemsCounter: actionCounter,
+          itemsCount: actionCount,
         });
+        fetchClipboardOperations();
       })
       .catch(() => {
         copyPasteToast({
           success: false,
           isCopy: true,
-          itemsCounter: actionCounter,
+          itemsCount: actionCount,
         });
       });
   };
@@ -240,7 +269,8 @@ export const InteractiveContextProvider = ({
     } else {
       copySelectedArea();
     }
-  }, [copyPressed, copySelectedArea, copySelectedStep, selectedStep]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [copyPressed, selectedStep]);
 
   const contextValue = useMemo(
     () => ({
@@ -250,6 +280,8 @@ export const InteractiveContextProvider = ({
       onSelectionEnd,
       copySelectedArea,
       copyAction,
+      pastePlusButton,
+      setPastePlusButton,
       readonly: false,
     }),
     [
@@ -258,6 +290,7 @@ export const InteractiveContextProvider = ({
       onSelectionEnd,
       copySelectedArea,
       copyAction,
+      pastePlusButton,
     ],
   );
   return (

@@ -9,7 +9,7 @@ import {
   toast,
   UNSAVED_CHANGES_TOAST,
   useCanvasContext,
-  usePasteActionsInClipboard,
+  useClipboardContext,
   WorkflowNode,
 } from '@openops/components/ui';
 import {
@@ -58,8 +58,7 @@ const CanvasContextMenu = memo(
 
     const { copyAction } = useCanvasContext();
     const { onPaste } = usePaste();
-    const { actionToPaste, fetchClipboardOperations } =
-      usePasteActionsInClipboard();
+    const { actionToPaste, fetchClipboardOperations } = useClipboardContext();
 
     const [selectStepByName, removeStepSelection, setAllowCanvasPanning] =
       useBuilderStateContext((state) => [
@@ -158,6 +157,7 @@ const CanvasContextMenu = memo(
                 onSelect={(e) => {
                   e.preventDefault();
                   copyAction(data.step as Action);
+                  setOpenStepActionsMenu(false);
                 }}
               >
                 <StepActionWrapper>
@@ -198,6 +198,7 @@ const CanvasContextMenu = memo(
                       StepLocationRelativeToParent.INSIDE_LOOP,
                       data.step.name,
                     );
+                    setOpenStepActionsMenu(false);
                   }
                 }}
               >
@@ -221,6 +222,7 @@ const CanvasContextMenu = memo(
                       StepLocationRelativeToParent.INSIDE_TRUE_BRANCH,
                       data.step.name,
                     );
+                    setOpenStepActionsMenu(false);
                   }
                 }}
               >
@@ -246,6 +248,7 @@ const CanvasContextMenu = memo(
                       data.step.name,
                       branchNodeId,
                     );
+                    setOpenStepActionsMenu(false);
                   }
                 }}
               >
@@ -259,13 +262,13 @@ const CanvasContextMenu = memo(
           {isAction && showCopyPaste && actionToPaste && (
             <DropdownMenuItem
               onSelect={(e) => {
-                e.preventDefault();
                 if (data.step) {
                   onPaste(
                     actionToPaste as Action,
                     StepLocationRelativeToParent.AFTER,
                     data.step.name,
                   );
+                  setOpenStepActionsMenu(false);
                 }
               }}
             >
